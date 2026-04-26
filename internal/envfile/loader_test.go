@@ -6,6 +6,18 @@ import (
 	"testing"
 )
 
+// writeTempEnvFile creates a temporary .env file with the given content
+// and returns its path. The file is automatically cleaned up when the test ends.
+func writeTempEnvFile(t *testing.T, content string) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, ".env")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write temp env file: %v", err)
+	}
+	return path
+}
+
 func TestLoad_ValidEnvFile(t *testing.T) {
 	path := writeTempEnvFile(t, "KEY=value\nFOO=bar\n")
 
