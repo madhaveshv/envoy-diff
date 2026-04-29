@@ -2,41 +2,41 @@ package envfile
 
 import "github.com/spf13/cobra"
 
-// DiffFlags holds CLI flag values for the diff command.
+// DiffFlags holds options that control how env file diffs are filtered and displayed.
 type DiffFlags struct {
-	Format    string
-	Prefix    string
-	Allowlist []string
-	Exclude   []string
-	Redact    bool
-	Audit     bool
+	Prefix      string
+	Allowlist   []string
+	ExcludeKeys []string
+	Redact      bool
+	Audit       bool
+	Format      string
 }
 
-// RegisterDiffFlags registers diff-related flags on the given command.
+// RegisterDiffFlags attaches diff-related flags to a cobra command.
 func RegisterDiffFlags(cmd *cobra.Command) {
-	cmd.Flags().String("format", "text", "Output format: text, table, json")
 	cmd.Flags().String("prefix", "", "Only include keys with this prefix")
-	cmd.Flags().StringSlice("allowlist", nil, "Only include these keys")
-	cmd.Flags().StringSlice("exclude", nil, "Exclude these keys from diff")
+	cmd.Flags().StringSlice("allowlist", nil, "Comma-separated list of keys to include")
+	cmd.Flags().StringSlice("exclude", nil, "Comma-separated list of keys to exclude")
 	cmd.Flags().Bool("redact", false, "Redact sensitive values in output")
 	cmd.Flags().Bool("audit", false, "Run audit rules on the diff")
+	cmd.Flags().String("format", "text", "Output format: text, table, json")
 }
 
 // DiffFlagsFromArgs extracts DiffFlags from a cobra command's parsed flags.
 func DiffFlagsFromArgs(cmd *cobra.Command) DiffFlags {
-	format, _ := cmd.Flags().GetString("format")
 	prefix, _ := cmd.Flags().GetString("prefix")
 	allowlist, _ := cmd.Flags().GetStringSlice("allowlist")
 	exclude, _ := cmd.Flags().GetStringSlice("exclude")
 	redact, _ := cmd.Flags().GetBool("redact")
 	audit, _ := cmd.Flags().GetBool("audit")
+	format, _ := cmd.Flags().GetString("format")
 
 	return DiffFlags{
-		Format:    format,
-		Prefix:    prefix,
-		Allowlist: allowlist,
-		Exclude:   exclude,
-		Redact:    redact,
-		Audit:     audit,
+		Prefix:      prefix,
+		Allowlist:   allowlist,
+		ExcludeKeys: exclude,
+		Redact:      redact,
+		Audit:       audit,
+		Format:      format,
 	}
 }

@@ -5,74 +5,69 @@ import (
 	"strings"
 )
 
-// ConvertOptions controls how environment variable keys are transformed.
+// ConvertOptions controls how an env map is transformed during conversion.
 type ConvertOptions struct {
-	// KeyCase converts all keys to "upper" or "lower" case.
-	KeyCase string
-	// KeyPrefix adds a prefix to all keys.
-	KeyPrefix string
-	// StripPrefix removes a prefix from all keys (applied before adding KeyPrefix).
-	StripPrefix string
-	// ValueQuoteStyle wraps values in "double", 'single', or "none" (default) quotes.
-	ValueQuoteStyle string
+	UppercaseKeys bool
+	LowercaseKeys bool
+	KeyPrefix     string
+	StripPrefix   string
+	QuoteStyle    string // none, single, double
+	TrimValues    bool
 }
 
-// Convert applies structural transformations to env map keys and values
-// according to the provided ConvertOptions. It returns a new map and does
-// not mutate the input.
+// Convert applies a set of transformation options to an env map and returns a new map.
 func Convert(env map[string]string, opts ConvertOptions) (map[string]string, error) {
 	if err := validateConvertOptions(opts); err != nil {
 		return nil, err
 	}
 
-	out := make(map[string]string, len(env))
+	result := make(map[string]string, len(env))
 	for k, v := range env {
 		newKey := k
 
-		if opts.StripPrefix != "" {
+		if opts.StripPrefix != "" && strings.HasPrefix(newKey, opts.StripPrefix) {
 			newKey = strings.TrimPrefix(newKey, opts.StripPrefix)
-		}
-
-		switch strings.ToLower(opts.KeyCase) {
-		case "upper":
-			newKey = strings.ToUpper(newKey)
-		case "lower":
-			newKey = strings.ToLower(newKey)
 		}
 
 		if opts.KeyPrefix != "" {
 			newKey = opts.KeyPrefix + newKey
 		}
 
-		newVal := applyQuoteStyle(v, opts.ValueQuoteStyle)
-		out[newKey] = newVal
+		if opts.UppercaseKeys {
+			newKey = strings.ToUpper(newKey)
+		} else if opts.LowercaseKeys {
+			newKey = strings.ToLower(newKey)
+		}
+
+		newVal := v
+		if opts.TrimValues {
+			newVal = strings.TrimSpace(newVal)
+		}
+
+		newVal = applyQuoteStyle(newVal, opts.QuoteStyle)
+		result[newKey] = newVal
 	}
-	return out, nil
+	return result, nil
 }
 
 func applyQuoteStyle(val, style string) string {
-	switch strings.ToLower(style) {
-	case "double":
-		return fmt.Sprintf(`"%s"`, val)
+	switch style {
 	case "single":
-		return fmt.Sprintf(`'%s'`, val)
+		return "'" + strings.ReplaceAll(val, "'", `\'`) + "'"
+	case "double":
+		return `"` + strings.ReplaceAll(val, `"`, `\"`) + `"`
 	default:
 		return val
 	}
 }
 
 func validateConvertOptions(opts ConvertOptions) error {
-	switch strings.ToLower(opts.KeyCase) {
-	case "", "upper", "lower":
-		// valid
-	default:
-		return fmt.Errorf("invalid key_case %q: must be \"upper\" or \"lower\"", opts.KeyCase)
+	if opts.UppercaseKeys && opts.LowercaseKeys {
+		return fmt.Errorf("convert: uppercase-keys and lowercase-keys are mutually exclusive")
 	}
-	switch strings.ToLower(opts.ValueQuoteStyle) {
-	case "", "none", "double", "single":
-		// valid
-	default:
-		return fmt.Errorf("invalid value_quote_style %q: must be \"double\", \"single\", or \"none\"", opts.ValueQuoteStyle)
+	valid := map[string]bool{"none": true, "single": true, "double": true, "": true}
+	if !valid[opts.QuoteStyle] {
+		return fmt.Errorf("convert: unsupported quote style %q", opts.QuoteStyle)
 	}
 	return nil
 }
