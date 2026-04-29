@@ -81,3 +81,13 @@ func Validate(env map[string]string, opts ValidateOptions) []ValidationIssue {
 	}
 	return issues
 }
+
+// HasErrors returns true if any of the provided issues have severity "error".
+func HasErrors(issues []ValidationIssue) bool {
+	for _, issue := range issues {
+		if issue.Severity == "error" {
+			return true
+		}
+	}
+	return false
+}
